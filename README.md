@@ -123,4 +123,4 @@ Public issues should not include raw BLE captures, full Dragy identifiers, route
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE).
