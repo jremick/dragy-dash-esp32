@@ -57,11 +57,9 @@ void StatsTracker::record(const TelemetrySample &sample, float filteredSpeedKph)
     if (elapsedSeconds > 0.0f && elapsedSeconds < kMaxSampleGapSeconds) {
       const float averageMetersPerSecond = ((lastFilteredSpeedKph_ + speedKph) * 0.5f) / 3.6f;
       const float distanceMeters = std::max(0.0f, averageMetersPerSecond * elapsedSeconds);
-      if (distanceMeters > 0.0f) {
-        stats_.distanceMeters += distanceMeters;
-        appendSegment(distanceMeters, elapsedSeconds);
-        updateAverages();
-      }
+      stats_.distanceMeters += distanceMeters;
+      appendSegment(distanceMeters, elapsedSeconds);
+      updateAverages();
     }
   }
 
@@ -71,6 +69,15 @@ void StatsTracker::record(const TelemetrySample &sample, float filteredSpeedKph)
 }
 
 void StatsTracker::appendSegment(float distanceMeters, float elapsedSeconds) {
+  const bool movingToStop = distanceMeters == 0.0f && activeBucket_.distanceMeters > 0.0f;
+  const bool stopToMoving =
+    distanceMeters > 0.0f && activeBucket_.distanceMeters == 0.0f && activeBucket_.elapsedSeconds > 0.0f;
+  if (movingToStop || stopToMoving) {
+    // Keep stationary stops in their own bucket so leading stops age out cleanly
+    // once subsequent movement covers the rolling window.
+    commitActiveBucket();
+  }
+
   activeBucket_.distanceMeters += distanceMeters;
   activeBucket_.elapsedSeconds += elapsedSeconds;
 
@@ -121,8 +128,11 @@ void StatsTracker::advanceWindowTail(SlidingWindow &window) {
   const size_t ringEndSeq = ringBaseSeq_ + ringCount_;
   while (window.tailSeq < ringEndSeq) {
     const DistanceBucket &oldest = ring_[window.tailSeq % kRingCapacity];
-    if (window.accumulatedDistance - oldest.distanceMeters >= window.targetMeters) {
-      window.accumulatedDistance -= oldest.distanceMeters;
+    const double remainingDistance = window.accumulatedDistance - oldest.distanceMeters;
+    const bool dropLeadingZeroStop =
+      oldest.distanceMeters == 0.0f && remainingDistance + 0.01 >= window.targetMeters;
+    if (remainingDistance >= window.targetMeters || dropLeadingZeroStop) {
+      window.accumulatedDistance = remainingDistance;
       window.accumulatedElapsed -= oldest.elapsedSeconds;
       window.tailSeq += 1;
     } else {

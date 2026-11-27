@@ -234,6 +234,31 @@ void test_stats_tracker_ignores_stationary_filtered_jitter() {
   TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, tracker.stats().distanceMeters);
 }
 
+void test_stats_tracker_includes_stationary_time_in_rolling_averages() {
+  dragy::StatsTracker tracker;
+  dragy::TelemetrySample sample;
+  sample.fixQuality = dragy::FixQuality::ThreeD;
+  sample.satelliteCount = 12;
+  sample.hasGpsTimeOfWeek = true;
+
+  // Drive 1,000 m in 100 s at 36 km/h (10 m/s), then sit stationary for 100 s.
+  for (uint32_t sec = 0; sec <= 100; ++sec) {
+    sample.timestampMs = sec * 1000u;
+    sample.gpsTimeOfWeekMs = 10000u + sec * 1000u;
+    sample.speedKph = 36.0f;
+    tracker.record(sample, 36.0f);
+  }
+  TEST_ASSERT_FLOAT_WITHIN(0.2f, 36.0f, tracker.stats().avg1KmKph);
+
+  for (uint32_t sec = 101; sec <= 200; ++sec) {
+    sample.timestampMs = sec * 1000u;
+    sample.gpsTimeOfWeekMs = 10000u + sec * 1000u;
+    sample.speedKph = 0.0f;
+    tracker.record(sample, 0.0f);
+  }
+  TEST_ASSERT_FLOAT_WITHIN(0.3f, 18.0f, tracker.stats().avg1KmKph);
+}
+
 }  // namespace
 
 void setUp() {}
@@ -250,5 +275,6 @@ int main() {
   RUN_TEST(test_speed_filter_hysteresis_and_no_fix);
   RUN_TEST(test_stats_tracker_rolling_averages_and_ring_wraparound);
   RUN_TEST(test_stats_tracker_ignores_stationary_filtered_jitter);
+  RUN_TEST(test_stats_tracker_includes_stationary_time_in_rolling_averages);
   return UNITY_END();
 }
