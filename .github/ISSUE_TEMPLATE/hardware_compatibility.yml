@@ -1,0 +1,34 @@
+name: Hardware / Board Compatibility Report
+description: Report compatibility with a Dragy model or ESP32-S3 board revision
+labels: ["hardware"]
+body:
+  - type: input
+    id: board
+    attributes:
+      label: ESP32 Board & Revision
+      placeholder: "e.g., LilyGO T-Display-S3 v1.2 (non-touch / touch)"
+    validations:
+      required: true
+  - type: input
+    id: dragy
+    attributes:
+      label: Dragy Model Prefix
+      placeholder: "e.g., DRG70 (Dragy Pro)"
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Observed Result
+      options:
+        - Connects and streams live speed + battery cleanly
+        - Connects and streams speed, battery unavailable
+        - Connects but shows BUSY? / STREAM
+        - Display pinout / rotation issue
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional Notes (redacted)
+      description: Share pinout differences or observed behavior without personal identifiers.

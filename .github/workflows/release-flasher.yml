@@ -1,0 +1,140 @@
+name: Release & Web Flasher
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      deploy_pages:
+        description: "Deploy ESP Web Tools flasher to GitHub Pages"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages-flasher"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build merged factory binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/platforms
+            ~/.platformio/packages
+          key: ${{ runner.os }}-platformio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO Core
+        run: python3 -m pip install --upgrade platformio
+
+      - name: Run native unit tests
+        run: pio test -e native -v
+
+      - name: Build Metric and Imperial firmware
+        run: |
+          pio run -e lilygo_t_display_s3
+          pio run -e lilygo_t_display_s3_imperial
+
+      - name: Merge factory binaries and generate ESP Web Tools manifests
+        id: package
+        env:
+          VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+        run: |
+          set -euo pipefail
+          ESPTOOL="$HOME/.platformio/packages/tool-esptool/esptool"
+          BOOT_APP0="$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+
+          mkdir -p dist site/firmware
+          cp web-flasher/index.html site/index.html
+
+          "$ESPTOOL" --chip esp32s3 merge-bin \
+            -o dist/dragydash-esp32-t-display-s3-metric.bin \
+            --flash-mode qio --flash-freq 80m --flash-size 16MB \
+            0x0 .pio/build/lilygo_t_display_s3/bootloader.bin \
+            0x8000 .pio/build/lilygo_t_display_s3/partitions.bin \
+            0xe000 "$BOOT_APP0" \
+            0x10000 .pio/build/lilygo_t_display_s3/firmware.bin
+
+          "$ESPTOOL" --chip esp32s3 merge-bin \
+            -o dist/dragydash-esp32-t-display-s3-imperial.bin \
+            --flash-mode qio --flash-freq 80m --flash-size 16MB \
+            0x0 .pio/build/lilygo_t_display_s3_imperial/bootloader.bin \
+            0x8000 .pio/build/lilygo_t_display_s3_imperial/partitions.bin \
+            0xe000 "$BOOT_APP0" \
+            0x10000 .pio/build/lilygo_t_display_s3_imperial/firmware.bin
+
+          cp dist/*.bin site/firmware/
+
+          python3 - <<'PY'
+          import json, os
+
+          version = os.environ["VERSION"]
+          for variant, label, filename in [
+              ("metric", "DragyDash ESP32 (Metric km/h)", "firmware/dragydash-esp32-t-display-s3-metric.bin"),
+              ("imperial", "DragyDash ESP32 (Imperial mph)", "firmware/dragydash-esp32-t-display-s3-imperial.bin"),
+          ]:
+              manifest = {
+                  "name": label,
+                  "version": version,
+                  "new_install_prompt_erase": True,
+                  "builds": [
+                      {
+                          "chipFamily": "ESP32-S3",
+                          "parts": [{"path": filename, "offset": 0}],
+                      }
+                  ],
+              }
+              with open(f"site/manifest-{variant}.json", "w", encoding="utf-8") as fh:
+                  json.dump(manifest, fh, indent=2)
+          PY
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG_NAME" \
+            dist/dragydash-esp32-t-display-s3-metric.bin \
+            dist/dragydash-esp32-t-display-s3-imperial.bin \
+            --title "DragyDash ESP32 $TAG_NAME" \
+            --generate-notes
+
+      - name: Configure GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.deploy_pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.deploy_pages
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - name: Deploy ESP Web Tools Flasher to GitHub Pages
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.deploy_pages
+        id: deployment
+        uses: actions/deploy-pages@v5

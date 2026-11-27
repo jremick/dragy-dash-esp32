@@ -13,26 +13,59 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: PlatformIO build
+  test-native:
+    name: Native C++ unit tests
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/cache@v4
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO Core
+        run: python3 -m pip install --upgrade platformio
+
+      - name: Run dragy_core unit tests
+        run: pio test -e native -v
+
+  build:
+    name: Firmware build (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: lilygo_t_display_s3
+            label: Metric km/h
+          - env: lilygo_t_display_s3_imperial
+            label: Imperial mph
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: ${{ runner.os }}-platformio
+            ~/.platformio/platforms
+            ~/.platformio/packages
+          key: ${{ runner.os }}-platformio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install PlatformIO Core
         run: python3 -m pip install --upgrade platformio
 
       - name: Build firmware
-        run: pio run
+        run: pio run -e ${{ matrix.env }}
