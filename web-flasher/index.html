@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DragyDash ESP32 — Browser Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b101b;
+      --surface: #141c2c;
+      --border: #263248;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #ef4444;
+      --accent-soft: rgba(239, 68, 68, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top right, #1d1522 0%, var(--bg) 52%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem 4rem;
+    }
+    main {
+      max-width: 720px;
+      width: 100%;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    p.lead {
+      color: var(--muted);
+      font-size: 1.08rem;
+      line-height: 1.6;
+      margin: 0 0 1.75rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      margin: 0 0 0.9rem;
+    }
+    .variants {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    label.variant {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.9rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.02);
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    label.variant:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    label.variant input {
+      margin-top: 0.25rem;
+      accent-color: var(--accent);
+    }
+    .variant strong { display: block; margin-bottom: 0.2rem; }
+    .variant span { font-size: 0.88rem; color: var(--muted); }
+    .install-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+    esp-web-install-button::part(button) {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 0.75rem 1.35rem;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+    }
+    .hint {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.15rem 0.4rem;
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 0.9em;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    a { color: #93c5fd; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">LilyGO T-Display-S3 · ESP32-S3</span>
+    <h1>DragyDash ESP32</h1>
+    <p class="lead">
+      Flash standalone Dragy Pro BLE speed &amp; GNSS telemetry firmware directly to your
+      <strong>LilyGO T-Display-S3</strong> from Chrome or Edge — no PlatformIO or Python setup required.
+    </p>
+
+    <section class="card">
+      <h2>1. Choose Unit Variant &amp; Flash</h2>
+      <div class="variants">
+        <label class="variant">
+          <input type="radio" name="variant" value="manifest-metric.json" checked />
+          <div>
+            <strong>Metric (km/h)</strong>
+            <span>km/h, km, m &middot; 1 / 5 / 10 km rolling averages</span>
+          </div>
+        </label>
+        <label class="variant">
+          <input type="radio" name="variant" value="manifest-imperial.json" />
+          <div>
+            <strong>Imperial (mph)</strong>
+            <span>mph, mi, ft &middot; 1 / 3 / 5 mi rolling averages</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="install-row">
+        <esp-web-install-button id="installer" manifest="manifest-metric.json"></esp-web-install-button>
+        <span class="hint">Requires desktop Chrome, Edge, or Opera over USB-C.</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Controls</h2>
+      <ul>
+        <li><strong>Quick Left / Right Tap:</strong> Previous / Next display page (remembered across reboots)</li>
+        <li><strong>Long Left Hold:</strong> Reset in-memory run stats (peak, distance, averages)</li>
+        <li><strong>Long Right Hold:</strong> Disconnect &amp; pause BLE scanning (hold again to resume)</li>
+        <li><strong>Hold Both Buttons:</strong> Cycle brightness (DIM / MID / HIGH, remembered across reboots)</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Notes &amp; Safety</h2>
+      <ul>
+        <li>Disconnect the official Dragy app or iOS <a href="https://github.com/jremick/dragy-dash">DragyDash</a> so the Dragy Pro is free to accept the ESP32 BLE connection.</li>
+        <li>Unofficial experimental project — not affiliated with Dragy or LilyGO. Mount securely and never interact while driving.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>
+        <a href="https://github.com/jremick/dragy-dash-esp32">GitHub Repository</a>
+        &middot;
+        <a href="https://github.com/jremick/dragy-dash">Companion iOS App</a>
+      </span>
+      <span>Apache License 2.0</span>
+    </footer>
+  </main>
+
+  <script>
+    const installer = document.getElementById("installer");
+    document.querySelectorAll('input[name="variant"]').forEach((input) => {
+      input.addEventListener("change", () => {
+        installer.setAttribute("manifest", input.value);
+      });
+    });
+  </script>
+</body>
+</html>

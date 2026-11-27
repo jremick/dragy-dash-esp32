@@ -9,7 +9,7 @@ struct Panel {
 
 let panels = [
   Panel(title: "Page 1", speed: "88", rows: [("AVG 5 KM", "86 km/h"), ("SATS", "18"), ("ACCURACY", "1.2 m")]),
-  Panel(title: "Page 2", speed: "88", rows: [("AVG 1 KM", "84"), ("AVG 5 KM", "86"), ("AVG 10 KM", "82")]),
+  Panel(title: "Page 2", speed: "88", rows: [("AVG 1 KM", "84 km/h"), ("AVG 5 KM", "86 km/h"), ("AVG 10 KM", "82 km/h")]),
   Panel(title: "Page 3", speed: "88", rows: [("PEAK", "112 km/h"), ("DIST", "6.42 km"), ("ALT", "49 m")])
 ]
 
@@ -88,7 +88,7 @@ for (index, panel) in panels.enumerated() {
     drawText(row.1, in: tftRect(x: 148, y: y + 18, width: 138, height: 26), font: .monospacedDigitSystemFont(ofSize: 21, weight: .semibold), color: .white, alignment: .right)
   }
 
-  drawText("READY  84%  3D", in: tftRect(x: 6, y: 132, width: 210, height: 18), font: .systemFont(ofSize: 12, weight: .semibold), color: NSColor(calibratedWhite: 0.42, alpha: 1))
+  drawText("ROLLING  84%  3D", in: tftRect(x: 6, y: 132, width: 210, height: 18), font: .systemFont(ofSize: 12, weight: .semibold), color: NSColor(calibratedWhite: 0.42, alpha: 1))
   NSColor.systemGreen.setFill()
   NSBezierPath(ovalIn: tftRect(x: 290, y: 139, width: 10, height: 10)).fill()
 }
